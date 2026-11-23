@@ -1,0 +1,18 @@
+services:
+  demo-upstream:
+    build: .
+    command: ["python", "-m", "apishield.demo_upstream"]
+    expose:
+      - "9000"
+
+  apishield:
+    build: .
+    depends_on:
+      - demo-upstream
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./examples/apishield.json:/config/apishield.json:ro
+      - ./events:/events
+    environment:
+      APISHIELD_UPSTREAM: "http://demo-upstream:9000"
