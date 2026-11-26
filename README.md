@@ -1,4 +1,10 @@
+<p align="center"><img src="assets/banner.svg" alt="apishield banner" width="100%"/></p>
+
 # APIShield
+
+[![CI](https://github.com/gravion-ux/apishield/actions/workflows/ci.yml/badge.svg)](https://github.com/gravion-ux/apishield/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+**An API security gateway that sits in front of your API and catches the attacks that actually breach APIs — BOLA/IDOR, broken JWTs, credential stuffing, sensitive-data exposure and.**
 
 **An API security gateway that sits in front of your API and catches the attacks that actually breach APIs** — BOLA/IDOR, broken JWTs, credential stuffing, sensitive-data exposure and missing security headers — in real time, with zero runtime dependencies.
 
