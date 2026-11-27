@@ -2,7 +2,9 @@ import json
 
 import pytest
 
-from apishield.config import ConfigError, load_config
+from apishield.config import Config, ConfigError, load_config
+from apishield.gateway import parse_content_length
+from apishield.pro import pro_enabled
 from conftest import make_config
 
 
@@ -57,3 +59,28 @@ def test_invalid_json(tmp_path):
 def test_invalid_configs_rejected(tmp_path, data):
     with pytest.raises(ConfigError):
         load_config(write(tmp_path, data))
+
+
+
+@pytest.mark.parametrize("upstream", ["ftp://example.com", "http://", "http://user:pass@example.com", "http://example.com:99999"])
+def test_upstream_must_be_clean_http_url(upstream):
+    with pytest.raises(ConfigError):
+        Config(upstream=upstream).validate()
+
+
+def test_listen_port_bool_is_rejected():
+    with pytest.raises(ConfigError):
+        Config(listen_port=True).validate()
+
+
+def test_parse_content_length():
+    assert parse_content_length(None) == 0
+    assert parse_content_length("42") == 42
+    assert parse_content_length("-1") == -1
+    assert parse_content_length("not-a-number") == -1
+
+
+def test_pro_gate_defaults_off():
+    assert pro_enabled({}) is False
+    assert pro_enabled({"APISHIELD_PRO": "1"}) is True
+    assert pro_enabled({"APISHIELD_PRO": "off"}) is False

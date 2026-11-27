@@ -24,6 +24,18 @@ HOP_BY_HOP = {
     "te", "trailers", "transfer-encoding", "upgrade",
 }
 BLOCK_SEVERITY = "critical"
+MAX_REQUEST_BODY_BYTES = 10 * 1024 * 1024
+
+
+def parse_content_length(raw: str | None) -> int:
+    """Return a validated Content-Length, or -1 when the header is invalid."""
+    if raw is None:
+        return 0
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        return -1
+    return value if value >= 0 else -1
 
 
 class Gateway:
@@ -114,7 +126,17 @@ class Gateway:
             protocol_version = "HTTP/1.1"
 
             def _dispatch(self) -> None:
-                length = int(self.headers.get("Content-Length") or 0)
+                length = parse_content_length(self.headers.get("Content-Length"))
+                if length < 0:
+                    self.send_response(400)
+                    self.send_header("Content-Length", "0")
+                    self.end_headers()
+                    return
+                if length > MAX_REQUEST_BODY_BYTES:
+                    self.send_response(413)
+                    self.send_header("Content-Length", "0")
+                    self.end_headers()
+                    return
                 body = self.rfile.read(length) if length else b""
                 headers = {k: v for k, v in self.headers.items()}
                 status, resp_headers, resp_body = gateway.handle(

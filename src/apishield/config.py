@@ -10,6 +10,7 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 MODES = ("monitor", "enforce")
 RULE_NAMES = ("bola", "jwt", "auth_abuse", "data_exposure", "security_headers")
@@ -58,8 +59,21 @@ class Config:
     def validate(self) -> "Config":
         if self.mode not in MODES:
             raise ConfigError(f"mode must be one of {MODES}, got {self.mode!r}")
-        if not (self.upstream.startswith("http://") or self.upstream.startswith("https://")):
-            raise ConfigError(f"upstream must be an http(s) URL, got {self.upstream!r}")
+        if not isinstance(self.upstream, str):
+            raise ConfigError("upstream must be an http(s) URL string")
+        parsed = urlsplit(self.upstream)
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+            raise ConfigError(f"upstream must be an http(s) URL with a host, got {self.upstream!r}")
+        if parsed.username or parsed.password:
+            raise ConfigError("upstream must not embed credentials")
+        try:
+            _port = parsed.port
+        except ValueError:
+            raise ConfigError(f"upstream port is invalid: {self.upstream!r}") from None
+        if not isinstance(self.listen_host, str) or not self.listen_host.strip():
+            raise ConfigError("listen_host must be a non-empty string")
+        if isinstance(self.listen_port, bool) or not isinstance(self.listen_port, int):
+            raise ConfigError("listen_port must be an integer")
         if not (0 <= self.listen_port <= 65535):
             raise ConfigError(f"listen_port out of range: {self.listen_port}")
         t = self.thresholds
@@ -71,8 +85,12 @@ class Config:
         ):
             if getattr(t, name) <= 0:
                 raise ConfigError(f"threshold {name} must be positive")
+        if isinstance(self.max_scan_bytes, bool) or not isinstance(self.max_scan_bytes, int):
+            raise ConfigError("max_scan_bytes must be an integer")
         if self.max_scan_bytes <= 0:
             raise ConfigError("max_scan_bytes must be positive")
+        if not isinstance(self.event_log, str):
+            raise ConfigError("event_log must be a path string (empty disables file logging)")
         return self
 
 
